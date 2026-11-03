@@ -1,0 +1,12 @@
+.env
+backend/.env
+backend/.venv/
+backend/chat.db
+backend/__pycache__/
+backend/gcp-service-key.json
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+*.pyc
+*.log
+modal-api-test-*.db
