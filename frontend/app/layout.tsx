@@ -4,7 +4,7 @@ import UserBadge from "@/components/UserBadge";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "META Story Engine",
+  title: "WREN Story Engine",
   description: "Deterministic multi-agent pipeline for consistent multi-scene stories",
 };
 export const viewport: Viewport = {
@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-900 text-zinc-100">
           <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center gap-4 px-4">
             <Link href="/" className="text-[15px] font-bold tracking-tight">
-              META <span className="text-amber-400">Story Engine</span>
+              WREN <span className="text-amber-400">Story Engine</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               {NAV.map((n) => (

@@ -75,7 +75,7 @@ export default function Home() {
   const sidebar = (
     <div className="flex h-full flex-col bg-zinc-900 text-zinc-100">
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <span className="text-[15px] font-semibold tracking-tight">META Chat</span>
+        <span className="text-[15px] font-semibold tracking-tight">WREN Chat</span>
         <button onClick={() => setDrawer(false)} className="flex h-11 w-11 items-center justify-center rounded-lg text-xl md:hidden" aria-label="Close menu">×</button>
       </div>
       <div className="px-3"><button onClick={newChat} className="min-h-11 w-full rounded-lg bg-zinc-100 px-3 text-left text-sm font-medium text-zinc-900 active:bg-white">＋ New chat</button></div>
@@ -89,7 +89,7 @@ export default function Home() {
           </div>
         ))}
       </nav>
-      <p className="px-4 pb-5 text-xs leading-relaxed text-zinc-500">Powered by META Muse Spark.<br />Chats are saved in SQLite.</p>
+      <p className="px-4 pb-5 text-xs leading-relaxed text-zinc-500">Powered by Muse Spark.<br />Chats are saved in SQLite.</p>
     </div>
   );
 
@@ -110,7 +110,7 @@ export default function Home() {
           <button onClick={() => setDrawer(true)} className="flex h-11 w-11 items-center justify-center rounded-lg text-xl md:hidden" aria-label="Open menu">☰</button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[15px] font-semibold">{conversations.find((c) => c.id === activeId)?.title || "New chat"}</h1>
-            <p className="text-xs text-zinc-500">META Llama · {sending ? "Replying…" : "SQLite history on"}</p>
+            <p className="text-xs text-zinc-500">Muse Spark · {sending ? "Replying…" : "SQLite history on"}</p>
           </div>
           <button onClick={newChat} className="min-h-11 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 md:hidden">＋ New</button>
         </header>
@@ -124,7 +124,7 @@ export default function Home() {
                 <h2 className="text-2xl font-semibold tracking-tight">What can I help with?</h2>
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-500">Ask anything. Your conversation is saved automatically and will be here when you come back.</p>
                 <div className="mx-auto mt-6 grid max-w-md gap-2 text-left">
-                  {["Explain Llama models in simple terms", "Write a hackathon pitch in 3 lines", "Give me 5 demo ideas for a META AI app"].map((s) => (
+                  {["Explain Llama models in simple terms", "Write a hackathon pitch in 3 lines", "Give me 5 demo ideas for a WREN app"].map((s) => (
                     <button key={s} onClick={() => { setInput(s); inputRef.current?.focus(); }} className="min-h-11 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm active:bg-zinc-50">{s}</button>
                   ))}
                 </div>
@@ -145,7 +145,7 @@ export default function Home() {
           <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
             <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              rows={1} placeholder="Message META Chat…" aria-label="Message"
+              rows={1} placeholder="Message WREN Chat…" aria-label="Message"
               className="max-h-36 min-h-11 flex-1 resize-none rounded-xl border border-zinc-300 px-3.5 py-2.5 text-[16px] outline-none focus:border-zinc-500" />
             <button type="submit" disabled={!input.trim() || sending} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-medium text-white disabled:opacity-40" aria-label="Send">↑</button>
           </div>

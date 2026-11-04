@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getDataset, getGrade, getTrainingStatus, saveCaptions, trainAsset,
   validateAdapter,
@@ -53,18 +53,40 @@ export default function TrainPanel({ asset, onTrained }: { asset: Asset; onTrain
     } finally { setBusy(false); }
   }
 
-  async function onStatus() {
-    setBusy(true); setMsg("Checking… (a finished job also runs the 3-probe likeness check, ~1 min)");
+  async function onStatus(silent = false) {
+    if (busy) return;
+    if (!silent) { setBusy(true); setMsg("Checking… (a finished job also runs the 3-probe likeness check, ~1 min)"); }
     try {
       const r = await getTrainingStatus(asset.id);
       const v = r.validation && typeof r.validation === "object" && "passed" in r.validation ? (r.validation as ValidationResult) : null;
       setValidation(v);
-      setMsg(r.message || `Status: ${r.status}`);
+      setMsg(v ? (v.passed ? "Adapter passed all likeness probes ✅" : "Adapter failed likeness probes — see reasons below.") : (r.message || `Status: ${r.status}`));
       onTrained();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Status check failed");
-    } finally { setBusy(false); }
+      if (!silent) setMsg(err instanceof Error ? err.message : "Status check failed");
+    } finally { if (!silent) setBusy(false); }
   }
+
+  const statusRef = useRef(onStatus);
+  statusRef.current = onStatus;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  useEffect(() => {
+    if (!open || asset.train_status !== "training") return;
+    let attempts = 0;
+    const id = setInterval(() => {
+      attempts += 1;
+      if (attempts > 60) {
+        clearInterval(id);
+        setMsg("Still training after ~30 min — leave this open and hit Check status later.");
+        return;
+      }
+      if (busyRef.current) return;
+      void statusRef.current(true);
+    }, 30000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, asset.id, asset.train_status]);
 
   async function onValidate() {
     const okGo = window.confirm(
@@ -155,8 +177,8 @@ export default function TrainPanel({ asset, onTrained }: { asset: Asset; onTrain
               Start paid training
             </button>
             {asset.train_status === "training" && (
-              <button onClick={onStatus} disabled={busy} className="text-xs font-medium text-teal-800 underline">
-                Check status (free)
+              <button onClick={() => onStatus()} disabled={busy} className="text-xs font-medium text-teal-800 underline">
+                Check status (free, auto-checks every 30s)
               </button>
             )}
             {(asset.train_status === "ready" || asset.train_status === "needs_review") && asset.adapter_ref && (

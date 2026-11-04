@@ -1,61 +1,40 @@
-# META Story Engine — no-code private LoRAs for brand mascots
+# WREN Story Engine — no-code private LoRAs for brand mascots
 
-Turn a handful of mascot photos into a reusable character model that draws
-your figure in new scenes without drifting — no code, no GPU of your own.
-Built for the META hackathon on **Muse Spark** (`muse-wonder-1.0`) +
-**Modal** GPUs + open **SDXL**.
+My name is Don Martirez, and for Meta's Global AI Developer Hackathon, I decided to build for my world.
 
-## The pitch
+As a visual designer and storyteller, my pain point is simple: I can't produce content fast without losing consistency. Norman the Good Gnome is IP I'm developing with AI. The first graphics took forever — and every new storyline since has meant hours of fighting to match a look and feel I already had. Every iteration drifts a little further from the original.
 
-Reference-based generators (Meta, Google) nail likeness because they see
-your photo every render — but every new scene needs the photo re-attached
-and the composition fights you. A personal LoRA bakes the character into
-weights you can reuse anywhere, yet small-data LoRAs notoriously collapse
-(busts instead of bodies, scrambled outfit colours, duplicated figures)
-and nothing tells you before you waste renders on them.
+So I built the app I wished existed: WREN turns anyone's brand mascot into a private, reusable AI model — no code, no GPU of your own. Upload a few reference photos and generate that same character in new scenes, on demand, without drift. This isn't an image analyzer. Analysis is step zero. What WREN manufactures is new model weights: curated datasets, paid GPU fine-tuning, versioned adapters, and finished artwork in three profiles — t-shirt graphics, storyboard panels, and video-ready scenes.
 
-This app is the whole loop, plus the missing piece — **a likeness
-acceptance gate**: every fresh adapter must pass three probe renders
-(neutral full body, action, close-up: one figure, body visible, DNA outfit
-colours present) before it is marked `ready`. A bad adapter parks at
-`needs_review` with per-probe reasons instead of silently replacing a good
-one. Reference model for faithful singles, LoRA for character series.
+## How it works — three steps
+
+**1 · Add your character to the Asset Bible.** Meta's vision models (`muse-wonder-1.0`) read the reference photo and encode what makes your character yours — colours, build, garments, signature details — into a frozen DNA profile. Before you spend a cent, WREN grades the dataset for free: duplicates, wardrobe clashes, too few poses. Rewrite any caption in plain words, download the `.zip` to see exactly what trains.
+
+**2 · Train.** Not everyone owns expensive GPUs or can code a LoRA pipeline — so the backend does it all: it packages the dataset, spins up a GPU on Modal, and fine-tunes an open image model (SDXL) into your character's personal adapter, locked to a trigger word only you own. Rank 16, UNet + text encoder, capped steps.
+
+**3 · Prove it before serving.** This is the part no one else demos: **WREN refuses to ship a bad adapter.** The moment training finishes, the app auto-renders three probe images (neutral full body, action, close-up) through the fresh model and checks them against the DNA — one figure, full body, correct outfit colours. Pass and the adapter goes live as `ready`. Fail and it parks at `needs_review` with the reasons spelled out; a bad adapter never silently replaces a good one, and `needs_review` adapters are never served to explicit requests.
+
+Only then do you create: pick the character, type an action like "waving hello" or "shoveling dirt", and generate — through your LoRA for series consistency, or flip the adapter off and use Meta's reference model on the same prompt for faithful one-offs.
+
+## Under the hood
+
+A deterministic, seed-locked pipeline: Meta's models for understanding, Modal GPUs for training, open SDXL for generation. Every user is isolated with their own trigger words, adapters, and quotas. The differentiator isn't the stack, it's the loop: grade before you pay, train without code, and prove likeness before serving. No consumer tool validates its own fine-tunes. This one rejects them.
+
+- **Backend** (`backend/app/`): FastAPI + SQLAlchemy + SQLite. Token auth, per-user ownership (legacy rows stay visible), training quotas. Assets CRUD + `/encode`, `/dataset`, `/dataset.zip`, `/grade`, `/captions`, `/train`, `/train/status` (auto-validates on completion), `/validate`, `/render`, projects CRUD + `/run`, `/export` — all under `/api`.
+- **Training + inference** (`backend/modal_lora_app.py`, deployed to Modal separately): A10 GPUs, SDXL base, rank-16 LoRA over UNet + text encoder, 400-step cap. Retraining never silently replaces a good adapter — the gate verdict decides.
+- **Acceptance gate** (`backend/app/validation.py`): single-subject, full-body-height, outfit-colour-share, and headwear checks over best-of-3 seed retries. Verdict stored on the asset.
+- **Render** (`backend/app/imagegen.py`): compact under-77-token LoRA prompts (SDXL truncates past that), negative prompt against bust/crop/sticker collapse, winning seed reported. Segmentation-first cutout (rembg, cleaned + feathered), containment checks, optional phrase band. Profiles: `tshirt` (isolated + margins), `storyboard`, `video` (wide crop).
+- **Frontend** (`frontend/`): Next.js 14 + React 18 + Tailwind. Create flow, Asset Bible + LoRA tools (grade, captions editor, steps, strength slider, status, re-validate), login, per-user training quota display.
+
+Request path: browser → FastAPI (`:8000`) → Modal or Meta depending on the step. Grades, captions, and status checks run free locally; GPU time bills to your Modal/Meta accounts.
 
 ## 2-minute demo path (rehearse this, never train live on stage)
 
 1. Open `http://localhost:3000`, sign up, open the **Asset Bible**.
-2. Create a character, upload 8–12 varied full-body photos (no text in the
-   images, no exact duplicates — the grader flags both for free).
-3. Open **LoRA tools**: check the dataset grade, fix any caption, download
-   the `.zip` to see exactly what trains.
-4. Train (400 steps, ~$3–4 of Modal credit), **Check status** — the first
-   check that sees a finished job auto-runs the 3-probe gate.
-5. **Create flow**: pick the character, type an action ("waving hello"),
-   generate through the trained LoRA. Flip the adapter off to compare with
-   the Meta reference model on the same prompt.
-
-## How it works
-
-- **Asset Bible** (`backend/app/`): per-user characters/objects with a DNA
-  profile (colours, build, garments) read from a reference photo by
-  `muse-wonder-1.0`. Users own their mascots; legacy rows stay visible.
-- **Free pre-flight**: `GET /grade` (duplicates, wardrobe spread, minimum
-  count), per-image caption overrides by fingerprint, downloadable dataset.
-- **Training** (`backend/modal_lora_app.py` on Modal A10): SDXL LoRA, rank
-  16, UNet + text encoder, trigger token per user+name, capped steps.
-- **Acceptance gate** (`backend/app/validation.py`): probes + single-body,
-  full-body-height, outfit-colour-share and headwear checks. Verdict stored
-  on the asset; `needs_review` adapters are never served to explicit
-  requests.
-- **Render** (`backend/app/imagegen.py`): compact under-77-token LoRA
-  prompts (SDXL truncates past that), negative prompt against bust/crop/
-  sticker collapse, best-of-3 seed retry through the gate checks, winning
-  seed reported. Segmentation-first cutout (rembg, cleaned + feathered),
-  containment checks, optional phrase band. Profiles: `tshirt`
-  (isolated + margins), `storyboard`, `video` (wide crop).
-- **Frontend** (`frontend/`): Create flow, Asset Bible + LoRA tools
-  (grade, captions editor, steps, strength slider, status, re-validate),
-  login, per-user training quota display.
+2. Create a character, upload 8–12 varied full-body photos (no text in the images, no exact duplicates — the grader flags both for free).
+3. Open **LoRA tools**: check the dataset grade, fix any caption, download the `.zip` to see exactly what trains.
+4. Train (400 steps, ~$3–4 of Modal credit), **Check status** — the first check that sees a finished job auto-runs the 3-probe gate.
+5. **Create**: pick the character, type an action ("waving hello"), generate through the trained LoRA. Flip the adapter off to compare with the Meta reference model on the same prompt.
 
 ## Quickstart
 
@@ -88,7 +67,7 @@ Key settings (`backend/app/config.py`, overridable in `.env`):
 - Render: 1–3 LoRA inferences (**cents**); Meta reference renders bill to
   your Meta key. Dataset grade, captions, status checks: **free**.
 
-## API map (all under `/api`, bearer auth)
+## API map (all under `/api`, Bearer [REDACTED]
 
 `POST /auth/register|login`, `GET /auth/me` · assets CRUD + `/encode`,
 `/dataset`, `/dataset.zip`, `/grade`, `/captions`, `/train`,
@@ -119,3 +98,7 @@ frontend/
   components/     TrainPanel (grade/captions/train/validate), UserBadge
   lib/api.ts      typed client with login-token handling
 ```
+
+## Vision
+
+Today you click through it. The vision is fully conversational creation — "put Norman in a pirate comic" and get back a finished, on-model story. Consistent merch, comics, and shorts without an art department.
